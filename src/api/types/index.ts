@@ -103,6 +103,7 @@ export interface Appointment {
   id: string;
   patientId: string;
   doctorId: string;
+  doctorName?: string;
   appointmentDate: string;
   startTime: string;
   endTime: string;

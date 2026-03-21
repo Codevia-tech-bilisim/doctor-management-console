@@ -272,6 +272,17 @@ export default function DoctorAppointments() {
               }
             </div>
 
+            {/* İptal nedeni */}
+            {detailModal.status === 'CANCELLED' && detailModal.cancellationReason && (
+              <div className="rounded-xl bg-red-500/8 border border-red-400/20 p-4">
+                <p className="text-[10px] font-700 uppercase tracking-wider text-red-400 mb-1.5">İptal Nedeni</p>
+                <p className="text-sm text-red-300 leading-relaxed">{detailModal.cancellationReason}</p>
+                {detailModal.cancelledAt && (
+                  <p className="text-xs text-red-400/60 mt-1">{formatDate(detailModal.cancelledAt)} tarihinde iptal edildi</p>
+                )}
+              </div>
+            )}
+
             {/* Reçete */}
             {detailModal.prescriptionId && (
               <div className="rounded-xl bg-emerald-500/8 border border-emerald-500/20 p-4">
