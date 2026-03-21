@@ -20,7 +20,8 @@ export default function DoctorDashboard() {
   const [loading,      setLoading]      = useState(true);
   const [zoomLoading,  setZoomLoading]  = useState<string | null>(null);
 
-  const today = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   useEffect(() => {
     if (!doctorId) return;

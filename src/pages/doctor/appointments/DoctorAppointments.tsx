@@ -172,7 +172,7 @@ export default function DoctorAppointments() {
                       <Td className="max-w-[160px] truncate text-[#B8C6E0] text-xs">{apt.chiefComplaint ?? '—'}</Td>
                       <Td>
                         <Badge variant={apt.consultationType === 'VIDEO_CALL' ? 'info' : apt.consultationType === 'IN_PERSON' ? 'success' : 'warn'}>
-                          {apt.consultationType}
+                          {apt.consultationType === 'VIDEO_CALL' ? 'Online' : apt.consultationType === 'IN_PERSON' ? 'In Person' : apt.consultationType}
                         </Badge>
                       </Td>
                       <Td>
@@ -223,7 +223,7 @@ export default function DoctorAppointments() {
                 {STATUS_LABEL[detailModal.status] ?? detailModal.status}
               </Badge>
               <Badge variant={detailModal.consultationType === 'VIDEO_CALL' ? 'info' : 'success'}>
-                {detailModal.consultationType}
+                {detailModal.consultationType === 'VIDEO_CALL' ? 'Online' : detailModal.consultationType === 'IN_PERSON' ? 'In Person' : detailModal.consultationType}
               </Badge>
               {detailModal.meetingInfo && (
                 <Badge variant="info">Zoom Bağlı</Badge>

@@ -144,7 +144,7 @@ export default function AdminAppointments() {
                       <Td className="font-mono text-xs text-[#8A9BC4]">{apt.doctorId?.slice(-8)}</Td>
                       <Td>
                         <Badge variant={apt.consultationType === 'VIDEO_CALL' ? 'info' : 'success'}>
-                          {apt.consultationType}
+                          {apt.consultationType === 'VIDEO_CALL' ? 'Online' : apt.consultationType === 'IN_PERSON' ? 'In Person' : apt.consultationType}
                         </Badge>
                       </Td>
                       <Td className="text-[#B8C6E0]">
@@ -197,7 +197,7 @@ export default function AdminAppointments() {
           <div className="flex flex-col gap-4">
             <div className="flex gap-2 flex-wrap">
               <Badge variant={STATUS_VARIANT[detailModal.status] ?? 'muted'}>{STATUS_LABEL[detailModal.status]}</Badge>
-              <Badge variant={detailModal.consultationType === 'VIDEO_CALL' ? 'info' : 'success'}>{detailModal.consultationType}</Badge>
+              <Badge variant={detailModal.consultationType === 'VIDEO_CALL' ? 'info' : 'success'}>{detailModal.consultationType === 'VIDEO_CALL' ? 'Online' : detailModal.consultationType === 'IN_PERSON' ? 'In Person' : detailModal.consultationType}</Badge>
               {detailModal.meetingInfo && <Badge variant="info">Zoom Bağlı</Badge>}
             </div>
 
