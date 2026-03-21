@@ -76,10 +76,12 @@ export default function PanelLayout({ role }: { role: Role }) {
   const navigate           = useNavigate();
   const location           = useLocation();
   const [sidebarOpen, setSidebarOpen]   = useState(false);
-  const [profileOpen, setProfileOpen]   = useState(false);
+  const [sidebarProfileOpen, setSidebarProfileOpen] = useState(false);
+  const [topbarProfileOpen, setTopbarProfileOpen]   = useState(false);
   const [notifOpen,   setNotifOpen]     = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
-  const profileRef = useRef<HTMLDivElement>(null);
+  const sidebarProfileRef = useRef<HTMLDivElement>(null);
+  const topbarProfileRef = useRef<HTMLDivElement>(null);
 
   const { notifications, unreadCount, markAllRead, markRead } = useNotifications(role);
   const nav = role === 'ADMIN' ? adminNav : doctorNav;
@@ -88,7 +90,8 @@ export default function PanelLayout({ role }: { role: Role }) {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
+      if (sidebarProfileRef.current && !sidebarProfileRef.current.contains(e.target as Node)) setSidebarProfileOpen(false);
+      if (topbarProfileRef.current && !topbarProfileRef.current.contains(e.target as Node)) setTopbarProfileOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -157,9 +160,9 @@ export default function PanelLayout({ role }: { role: Role }) {
 
         {/* User card */}
         <div className="border-t border-white/7 p-3">
-          <div ref={profileRef} className="relative">
+          <div ref={sidebarProfileRef} className="relative">
             <button
-              onClick={() => setProfileOpen(v => !v)}
+              onClick={() => setSidebarProfileOpen(v => !v)}
               className="flex w-full items-center gap-3 rounded-xl border border-white/8 bg-white/4 px-3 py-2.5 transition-all hover:bg-white/7"
             >
               <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#EE7436]/20 text-xs font-700 text-[#EE7436]">
@@ -169,9 +172,9 @@ export default function PanelLayout({ role }: { role: Role }) {
                 <p className="text-xs font-600 text-[#F0F4FF] truncate">{user?.firstName} {user?.lastName}</p>
                 <p className="text-[10px] text-[#8A9BC4]">{user?.role}</p>
               </div>
-              <ChevronDown size={13} className={cn('text-[#8A9BC4] transition-transform flex-shrink-0', profileOpen && 'rotate-180')} />
+              <ChevronDown size={13} className={cn('text-[#8A9BC4] transition-transform flex-shrink-0', sidebarProfileOpen && 'rotate-180')} />
             </button>
-            {profileOpen && (
+            {sidebarProfileOpen && (
               <div className="absolute bottom-full left-0 right-0 mb-1 rounded-xl border border-white/10 bg-[#162040] shadow-xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-white/8">
                   <p className="text-xs font-600 text-[#F0F4FF]">{user?.firstName} {user?.lastName}</p>
@@ -297,19 +300,21 @@ export default function PanelLayout({ role }: { role: Role }) {
                   </div>
 
                   {/* Footer */}
-                  <div className="border-t border-white/8 px-4 py-3">
-                    <p className="text-[10px] text-[#8A9BC4]/60 text-center">
-                      Gerçek zamanlı bildirimler yakında aktif olacak
-                    </p>
-                  </div>
+                  {notifications.length > 0 && (
+                    <div className="border-t border-white/8 px-4 py-2.5">
+                      <button onClick={markAllRead} className="w-full text-[10px] font-600 text-[#8A9BC4] hover:text-[#EE7436] transition-colors text-center">
+                        Tümünü temizle
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
             {/* Desktop kullanıcı pill */}
-            <div ref={profileRef} className="relative hidden lg:block">
+            <div ref={topbarProfileRef} className="relative hidden lg:block">
               <button
-                onClick={() => setProfileOpen(v => !v)}
+                onClick={() => setTopbarProfileOpen(v => !v)}
                 className="flex items-center gap-2.5 rounded-xl border border-white/8 bg-white/4 px-3 py-2 hover:bg-white/7 transition-all"
               >
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EE7436]/20 text-[10px] font-700 text-[#EE7436]">
@@ -319,10 +324,10 @@ export default function PanelLayout({ role }: { role: Role }) {
                   <p className="text-xs font-600 text-[#F0F4FF]">{user?.firstName} {user?.lastName}</p>
                   <p className="text-[10px] text-[#8A9BC4]">{user?.email}</p>
                 </div>
-                <ChevronDown size={12} className={cn('text-[#8A9BC4] transition-transform ml-1', profileOpen && 'rotate-180')} />
+                <ChevronDown size={12} className={cn('text-[#8A9BC4] transition-transform ml-1', topbarProfileOpen && 'rotate-180')} />
               </button>
 
-              {profileOpen && (
+              {topbarProfileOpen && (
                 <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-white/10 bg-[#162040] shadow-xl overflow-hidden z-50">
                   <div className="px-4 py-3 border-b border-white/8">
                     <p className="text-xs font-600 text-[#F0F4FF]">{user?.firstName} {user?.lastName}</p>
