@@ -10,6 +10,7 @@ import {
 import { getAvailableSlots, countAvailableSlots } from '@/api/endpoints/doctors';
 import type { Appointment, TimeSlot } from '@/api/types';
 import { formatDate, formatTime } from '@/lib/utils';
+import VideoCall from '@/components/VideoCall';
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
@@ -20,6 +21,7 @@ export default function DoctorDashboard() {
   const [slotCount,    setSlotCount]    = useState(0);
   const [loading,      setLoading]      = useState(true);
   const [zoomLoading,  setZoomLoading]  = useState<string | null>(null);
+  const [videoCall,    setVideoCall]    = useState<Appointment | null>(null);
 
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -44,18 +46,8 @@ export default function DoctorDashboard() {
   const pendingCount  = 0; // Randevular artık direkt CONFIRMED oluşuyor
   const completedCount= appointments.filter(a => a.status === 'COMPLETED').length;
 
-  const joinZoom = async (apt: Appointment) => {
-    if (!apt.meetingInfo?.joinUrl) {
-      setZoomLoading(apt.id);
-      try {
-        const res = await getMeetingLink(apt.id);
-        const url = res.data?.startUrl ?? res.data?.joinUrl;
-        if (url) window.open(url, '_blank');
-      } catch { /* ignore */ }
-      setZoomLoading(null);
-    } else {
-      window.open(apt.meetingInfo.startUrl ?? apt.meetingInfo.joinUrl, '_blank');
-    }
+  const joinZoom = (apt: Appointment) => {
+    setVideoCall(apt);
   };
 
   if (loading) return <PageLoader />;
@@ -167,6 +159,15 @@ export default function DoctorDashboard() {
           </div>
         </Card>
       </div>
+
+      {/* Sayfa içi video görüşme */}
+      {videoCall && (
+        <VideoCall
+          roomName={videoCall.id}
+          displayName={`Dr. ${user?.lastName ?? 'Doktor'}`}
+          onClose={() => setVideoCall(null)}
+        />
+      )}
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
 } from '@/api/endpoints/appointments';
 import type { Appointment, AppointmentStatus } from '@/api/types';
 import { formatDate, formatRelative } from '@/lib/utils';
+import VideoCall from '@/components/VideoCall';
 
 const PAGE_SIZE = 15;
 
@@ -55,8 +56,8 @@ export default function DoctorAppointments() {
   // Detay modal
   const [detailModal,  setDetailModal]    = useState<Appointment | null>(null);
 
-  // Zoom modal
-  const [zoomModal,    setZoomModal]      = useState<{ url: string; apt: Appointment } | null>(null);
+  // Video görüşme
+  const [videoCall,    setVideoCall]      = useState<Appointment | null>(null);
   const [zoomLoading,  setZoomLoading]    = useState<string | null>(null);
 
   const load = useCallback(async (p = 0) => {
@@ -100,20 +101,9 @@ export default function DoctorAppointments() {
     setPrescription('');
   };
 
-  // Zoom aç
-  const openZoom = async (apt: Appointment) => {
-    setZoomLoading(apt.id);
-    try {
-      const url = apt.meetingInfo?.startUrl ?? apt.meetingInfo?.meetingUrl ?? apt.meetingInfo?.joinUrl;
-      if (url) {
-        setZoomModal({ url, apt });
-      } else {
-        const res = await getMeetingLink(apt.id);
-        const link = res.data?.startUrl ?? res.data?.joinUrl;
-        if (link) setZoomModal({ url: link, apt });
-      }
-    } catch { /* ignore */ }
-    setZoomLoading(null);
+  // Video görüşme aç (sayfa içi Jitsi)
+  const openZoom = (apt: Appointment) => {
+    setVideoCall(apt);
   };
 
   return (
@@ -295,8 +285,8 @@ export default function DoctorAppointments() {
             <div className="flex flex-wrap gap-2 pt-1">
               {detailModal.consultationType === 'VIDEO_CALL' &&
                 (detailModal.status === 'CONFIRMED' || detailModal.status === 'CHECKED_IN' || detailModal.status === 'IN_PROGRESS') && (
-                <Button variant="primary" size="sm" loading={zoomLoading === detailModal.id} onClick={() => openZoom(detailModal)}>
-                  <Video size={13} /> Zoom'a Katıl
+                <Button variant="primary" size="sm" onClick={() => { setDetailModal(null); openZoom(detailModal); }}>
+                  <Video size={13} /> Görüşmeye Katıl
                 </Button>
               )}
               {detailModal.status === 'IN_PROGRESS' && (
@@ -380,33 +370,14 @@ export default function DoctorAppointments() {
         )}
       </Modal>
 
-      {/* ── Zoom Modal ── */}
-      <Modal open={!!zoomModal} onClose={() => setZoomModal(null)} title="Zoom Görüşmesi" width="max-w-sm">
-        {zoomModal && (
-          <div className="flex flex-col gap-4">
-            <div className="rounded-xl bg-blue-500/8 border border-blue-500/20 p-4">
-              <p className="text-sm text-blue-400 font-600">Toplantı hazır!</p>
-              <p className="text-xs text-[#8A9BC4] mt-1">
-                {formatDate(zoomModal.apt.appointmentDate)} · {zoomModal.apt.startTime}
-              </p>
-              {zoomModal.apt.meetingInfo?.meetingId && (
-                <p className="text-xs text-[#8A9BC4] mt-0.5 font-mono">
-                  Meeting ID: {zoomModal.apt.meetingInfo.meetingId}
-                </p>
-              )}
-            </div>
-            <a
-              href={zoomModal.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 h-11 rounded-xl bg-[#EE7436] text-white text-sm font-700 hover:bg-[#D45E20] transition-colors"
-            >
-              <Video size={16} /> Zoom'a Katıl <ExternalLink size={13} />
-            </a>
-            <p className="text-xs text-center text-[#8A9BC4]">Yeni sekmede açılacak</p>
-          </div>
-        )}
-      </Modal>
+      {/* ── Sayfa içi Video Görüşme ── */}
+      {videoCall && (
+        <VideoCall
+          roomName={videoCall.id}
+          displayName={`Dr. ${user?.lastName ?? 'Doktor'}`}
+          onClose={() => setVideoCall(null)}
+        />
+      )}
     </div>
   );
 }
