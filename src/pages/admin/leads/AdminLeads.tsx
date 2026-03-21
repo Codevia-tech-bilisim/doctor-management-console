@@ -1,14 +1,16 @@
 // src/pages/admin/leads/AdminLeads.tsx
 import React, { useEffect, useState, useCallback } from 'react';
-import { Card, Badge, Button, Modal, PageLoader, Empty, Table, Th, Td } from '@/components/ui';
+import { Card, Badge, Button, Modal, PageLoader, Empty, Table, Th, Td, Input } from '@/components/ui';
 import {
   Search, RefreshCw, UserPlus, ChevronLeft, ChevronRight,
-  MessageSquare, Calendar, TrendingUp, Zap,
+  MessageSquare, Calendar, TrendingUp, Zap, Tag, ArrowRightLeft,
+  UserCheck, CalendarClock, X, Plus,
 } from 'lucide-react';
 import {
-  getAllLeads, getLeadsByStatus, getLeadById,
-  changeLeadStatus, assignLead, autoAssignLead,
-  markLeadLost, scheduleFollowUp, getAvailableAgents,
+  getAllLeads, getLeadsByStatus, getLeadById, searchLeads,
+  changeLeadStatus, assignLead, autoAssignLead, transferLead,
+  markLeadLost, scheduleFollowUp, addTag, convertLead,
+  getAvailableAgents, getNeedingFollowUp,
 } from '@/api/endpoints/admin';
 import type { Lead, LeadStatus, Admin } from '@/api/types';
 import { formatDate, formatRelative } from '@/lib/utils';
@@ -53,26 +55,44 @@ export default function AdminLeads() {
   const [query,     setQuery]     = useState('');
   const [selected,  setSelected]  = useState<Lead | null>(null);
   const [agents,    setAgents]    = useState<Admin[]>([]);
-  const [assignModal,  setAssignModal]  = useState<Lead | null>(null);
-  const [lostModal,    setLostModal]    = useState<Lead | null>(null);
-  const [lostReason,   setLostReason]   = useState('');
-  const [actionLoading, setActionLoading] = useState(false);
+  const [assignModal,    setAssignModal]    = useState<Lead | null>(null);
+  const [lostModal,      setLostModal]      = useState<Lead | null>(null);
+  const [lostReason,     setLostReason]     = useState('');
+  const [followUpModal,  setFollowUpModal]  = useState<Lead | null>(null);
+  const [followUpDate,   setFollowUpDate]   = useState('');
+  const [convertModal,   setConvertModal]   = useState<Lead | null>(null);
+  const [convertPatientId, setConvertPatientId] = useState('');
+  const [transferModal,  setTransferModal]  = useState<Lead | null>(null);
+  const [tagInput,       setTagInput]       = useState('');
+  const [actionLoading,  setActionLoading]  = useState(false);
   const PAGE_SIZE = 15;
 
   const load = useCallback(async (p = 0) => {
     setLoading(true);
     try {
-      const res = filter === 'ALL'
-        ? await getAllLeads(p, PAGE_SIZE)
-        : await getLeadsByStatus(filter, p);
+      let res;
+      if (query.trim()) {
+        res = await searchLeads(query.trim(), p);
+      } else if (filter === 'ALL') {
+        res = await getAllLeads(p, PAGE_SIZE);
+      } else {
+        res = await getLeadsByStatus(filter, p);
+      }
       setLeads(res.data?.content ?? []);
       setTotal(res.data?.totalElements ?? 0);
       setPage(p);
     } catch { /* ignore */ }
     setLoading(false);
-  }, [filter]);
+  }, [filter, query]);
 
   useEffect(() => { load(0); }, [filter]);
+
+  // Debounced search
+  useEffect(() => {
+    if (!query.trim()) return;
+    const timer = setTimeout(() => load(0), 400);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   // Agents yükle
   useEffect(() => {
@@ -111,6 +131,56 @@ export default function AdminLeads() {
     setLostReason('');
   };
 
+  const handleFollowUp = async () => {
+    if (!followUpModal || !followUpDate) return;
+    setActionLoading(true);
+    try {
+      const res = await scheduleFollowUp(followUpModal.id, followUpDate);
+      setLeads(prev => prev.map(l => l.id === followUpModal.id ? res.data : l));
+      if (selected?.id === followUpModal.id) setSelected(res.data);
+    } catch { /* ignore */ }
+    setActionLoading(false);
+    setFollowUpModal(null);
+    setFollowUpDate('');
+  };
+
+  const handleConvert = async () => {
+    if (!convertModal || !convertPatientId.trim()) return;
+    setActionLoading(true);
+    try {
+      const res = await convertLead(convertModal.id, convertPatientId.trim());
+      setLeads(prev => prev.map(l => l.id === convertModal.id ? res.data : l));
+      if (selected?.id === convertModal.id) setSelected(res.data);
+    } catch { /* ignore */ }
+    setActionLoading(false);
+    setConvertModal(null);
+    setConvertPatientId('');
+  };
+
+  const handleTransfer = async (newAgentId: string) => {
+    if (!transferModal) return;
+    setActionLoading(true);
+    try {
+      const res = await transferLead(transferModal.id, newAgentId);
+      setLeads(prev => prev.map(l => l.id === transferModal.id ? res.data : l));
+      if (selected?.id === transferModal.id) setSelected(res.data);
+    } catch { /* ignore */ }
+    setActionLoading(false);
+    setTransferModal(null);
+  };
+
+  const handleAddTag = async (lead: Lead) => {
+    if (!tagInput.trim()) return;
+    setActionLoading(true);
+    try {
+      const res = await addTag(lead.id, tagInput.trim());
+      setLeads(prev => prev.map(l => l.id === lead.id ? res.data : l));
+      if (selected?.id === lead.id) setSelected(res.data);
+      setTagInput('');
+    } catch { /* ignore */ }
+    setActionLoading(false);
+  };
+
   const handleStatusChange = async (lead: Lead, status: LeadStatus) => {
     setActionLoading(true);
     try {
@@ -125,14 +195,32 @@ export default function AdminLeads() {
     <div className="flex flex-col gap-5">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-800 text-[#F0F4FF]">Lead Yönetimi</h1>
           <p className="text-sm text-[#8A9BC4] mt-0.5">Toplam {total} lead</p>
         </div>
-        <Button variant="secondary" size="sm" onClick={() => load(0)} loading={loading}>
-          <RefreshCw size={13} /> Yenile
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Arama kutusu */}
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A9BC4]" />
+            <input
+              type="text"
+              placeholder="Lead ara..."
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              className="h-9 w-56 rounded-xl border border-white/10 bg-white/5 pl-9 pr-8 text-sm text-[#F0F4FF] outline-none placeholder:text-[#8A9BC4]/60 focus:border-[#EE7436]/50 transition-colors"
+            />
+            {query && (
+              <button onClick={() => { setQuery(''); load(0); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8A9BC4] hover:text-[#F0F4FF]">
+                <X size={13} />
+              </button>
+            )}
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => load(0)} loading={loading}>
+            <RefreshCw size={13} /> Yenile
+          </Button>
+        </div>
       </div>
 
       {/* Status pills */}
@@ -276,6 +364,44 @@ export default function AdminLeads() {
               </div>
             )}
 
+            {/* Tags */}
+            <div>
+              <p className="text-[10px] font-700 uppercase tracking-wider text-[#8A9BC4] mb-2">Etiketler</p>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {(selected.tags ?? []).map(t => (
+                  <span key={t} className="flex items-center gap-1 rounded-lg bg-[#EE7436]/15 px-2 py-0.5 text-[10px] font-600 text-[#EE7436]">
+                    <Tag size={9} /> {t}
+                  </span>
+                ))}
+                {(!selected.tags || selected.tags.length === 0) && (
+                  <span className="text-xs text-[#8A9BC4]/60">Etiket yok</span>
+                )}
+              </div>
+              <div className="flex gap-1.5">
+                <input
+                  type="text"
+                  placeholder="Etiket ekle..."
+                  value={tagInput}
+                  onChange={e => setTagInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddTag(selected)}
+                  className="flex-1 h-8 rounded-lg border border-white/10 bg-white/5 px-3 text-xs text-[#F0F4FF] outline-none placeholder:text-[#8A9BC4]/60 focus:border-[#EE7436]/50"
+                />
+                <Button variant="orange" size="sm" onClick={() => handleAddTag(selected)} disabled={!tagInput.trim()} loading={actionLoading}>
+                  <Plus size={11} />
+                </Button>
+              </div>
+            </div>
+
+            {/* Follow-up bilgisi */}
+            {selected.nextFollowUpAt && (
+              <div className="flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/20 px-4 py-2.5">
+                <CalendarClock size={14} className="text-amber-400" />
+                <p className="text-xs text-amber-300">
+                  Takip: <span className="font-600">{formatDate(selected.nextFollowUpAt)}</span>
+                </p>
+              </div>
+            )}
+
             {/* Durum değiştirme */}
             <div>
               <p className="text-[10px] font-700 uppercase tracking-wider text-[#8A9BC4] mb-2">Durum Değiştir</p>
@@ -297,11 +423,25 @@ export default function AdminLeads() {
               </div>
             </div>
 
-            <div className="flex gap-2 pt-1">
-              <Button variant="secondary" size="sm" onClick={() => { setSelected(null); setAssignModal(selected); }} className="flex-1">
-                <UserPlus size={13} /> Agent Ata
+            {/* Aksiyonlar */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <Button variant="secondary" size="sm" onClick={() => { setSelected(null); setAssignModal(selected); }}>
+                <UserPlus size={12} /> Agent Ata
               </Button>
-              <Button variant="danger" size="sm" onClick={() => { setSelected(null); setLostModal(selected); }} className="flex-1">
+              <Button variant="secondary" size="sm" onClick={() => { setSelected(null); setFollowUpModal(selected); }}>
+                <CalendarClock size={12} /> Takip Planla
+              </Button>
+              {selected.assignedAgentId && (
+                <Button variant="secondary" size="sm" onClick={() => { setSelected(null); setTransferModal(selected); }}>
+                  <ArrowRightLeft size={12} /> Transfer
+                </Button>
+              )}
+              {selected.status !== 'CONVERTED' && (
+                <Button variant="primary" size="sm" onClick={() => { setSelected(null); setConvertModal(selected); }}>
+                  <UserCheck size={12} /> Hastaya Dönüştür
+                </Button>
+              )}
+              <Button variant="danger" size="sm" onClick={() => { setSelected(null); setLostModal(selected); }} className="col-span-2">
                 Kayıp İşaretle
               </Button>
             </div>
@@ -360,6 +500,90 @@ export default function AdminLeads() {
                 Kayıp İşaretle
               </Button>
             </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Follow-up zamanlama modal */}
+      <Modal open={!!followUpModal} onClose={() => { setFollowUpModal(null); setFollowUpDate(''); }} title="Takip Planla" width="max-w-sm">
+        {followUpModal && (
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-[#8A9BC4]">
+              <span className="font-600 text-[#F0F4FF]">{followUpModal.firstName}</span> için takip tarihi seç:
+            </p>
+            <input
+              type="datetime-local"
+              value={followUpDate}
+              onChange={e => setFollowUpDate(e.target.value)}
+              className="h-10 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-[#F0F4FF] outline-none focus:border-[#EE7436]/50"
+            />
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => { setFollowUpModal(null); setFollowUpDate(''); }} className="flex-1">İptal</Button>
+              <Button variant="primary" onClick={handleFollowUp} loading={actionLoading} disabled={!followUpDate} className="flex-1">
+                <CalendarClock size={13} /> Planla
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Lead dönüşüm modal */}
+      <Modal open={!!convertModal} onClose={() => { setConvertModal(null); setConvertPatientId(''); }} title="Hastaya Dönüştür" width="max-w-sm">
+        {convertModal && (
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-[#8A9BC4]">
+              <span className="font-600 text-[#F0F4FF]">{convertModal.firstName}</span> hastaya dönüştürülecek.
+            </p>
+            <input
+              type="text"
+              placeholder="Hasta ID (kayıtlı hasta ise)"
+              value={convertPatientId}
+              onChange={e => setConvertPatientId(e.target.value)}
+              className="h-10 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-[#F0F4FF] outline-none placeholder:text-[#8A9BC4]/60 focus:border-[#EE7436]/50"
+            />
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => { setConvertModal(null); setConvertPatientId(''); }} className="flex-1">İptal</Button>
+              <Button variant="primary" onClick={handleConvert} loading={actionLoading} disabled={!convertPatientId.trim()} className="flex-1">
+                <UserCheck size={13} /> Dönüştür
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Lead transfer modal */}
+      <Modal open={!!transferModal} onClose={() => setTransferModal(null)} title="Lead Transfer" width="max-w-sm">
+        {transferModal && (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-[#8A9BC4]">
+              <span className="font-600 text-[#F0F4FF]">{transferModal.firstName}</span> başka bir agent'a transfer et:
+            </p>
+            {transferModal.assignedAgentName && (
+              <div className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
+                <span className="text-xs text-[#8A9BC4]">Mevcut:</span>
+                <span className="text-xs font-600 text-[#F0F4FF]">{transferModal.assignedAgentName}</span>
+              </div>
+            )}
+            {agents.length === 0
+              ? <p className="text-sm text-amber-400">Şu an müsait agent yok.</p>
+              : agents.filter(a => a.id !== transferModal.assignedAgentId).map(agent => (
+                <button
+                  key={agent.id}
+                  onClick={() => handleTransfer(agent.id)}
+                  disabled={actionLoading}
+                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-left hover:bg-white/10 transition-all disabled:opacity-50"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EE7436]/15 text-xs font-700 text-[#EE7436]">
+                    {(agent.firstName[0] ?? '').toUpperCase()}{(agent.lastName?.[0] ?? '').toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-600 text-[#F0F4FF]">{agent.firstName} {agent.lastName ?? ''}</p>
+                    <p className="text-xs text-[#8A9BC4]">{agent.department ?? agent.jobTitle ?? 'Agent'}</p>
+                  </div>
+                  <span className="ml-auto text-[10px] text-emerald-400 font-600">Müsait</span>
+                </button>
+              ))
+            }
           </div>
         )}
       </Modal>

@@ -7,9 +7,10 @@ import {
   AlertCircle, TrendingUp, CheckCircle2, RefreshCw,
 } from 'lucide-react';
 import { getAllDoctors } from '@/api/endpoints/doctors';
-import { getLeadStatistics, getUnassignedLeads } from '@/api/endpoints/admin';
+import { getLeadStatistics, getUnassignedLeads, getNeedingFollowUp } from '@/api/endpoints/admin';
 import { getAllAppointments } from '@/api/endpoints/appointments';
 import { formatDate, formatRelative } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 import type { Doctor, Lead, Appointment } from '@/api/types';
 
 // Backend bazen Page<T>, bazen T[] dönüyor — ikisini normalize et
@@ -26,6 +27,7 @@ export default function AdminDashboard() {
 
   const [allDoctors,   setAllDoctors]   = useState<Doctor[]>([]);
   const [unassignedLeads, setUnassignedLeads] = useState<Lead[]>([]);
+  const [followUpLeads, setFollowUpLeads] = useState<Lead[]>([]);
   const [recentAppointments, setRecentAppointments] = useState<Appointment[]>([]);
   const [leadStats,    setLeadStats]    = useState<Record<string, number>>({});
   const [loading,      setLoading]      = useState(true);
@@ -33,11 +35,12 @@ export default function AdminDashboard() {
   const load = useCallback(() => {
     setLoading(true);
     Promise.allSettled([
-      getAllDoctors(0, 100),       // tüm doktorları çek, client'ta filtrele
+      getAllDoctors(0, 100),
       getUnassignedLeads(),
       getAllAppointments(0, 8),
       getLeadStatistics(),
-    ]).then(([doctors, unassigned, appointments, stats]) => {
+      getNeedingFollowUp(),
+    ]).then(([doctors, unassigned, appointments, stats, followUp]) => {
       if (doctors.status === 'fulfilled')
         setAllDoctors(extractList<Doctor>(doctors.value.data));
       if (unassigned.status === 'fulfilled')
@@ -46,6 +49,8 @@ export default function AdminDashboard() {
         setRecentAppointments(extractList<Appointment>(appointments.value.data));
       if (stats.status === 'fulfilled')
         setLeadStats((stats.value.data as Record<string, number>) ?? {});
+      if (followUp.status === 'fulfilled')
+        setFollowUpLeads(extractList<Lead>(followUp.value.data));
     }).finally(() => setLoading(false));
   }, []);
 
@@ -120,9 +125,9 @@ export default function AdminDashboard() {
           </div>
           {pendingDoctors.length > 0 && (
             <div className="border-t border-white/8 px-5 py-3">
-              <a href="/admin/doctors" className="text-xs font-600 text-[#EE7436] hover:underline">
+              <Link to="/admin/doctors" className="text-xs font-600 text-[#EE7436] hover:underline">
                 Tümünü gör →
-              </a>
+              </Link>
             </div>
           )}
         </Card>
@@ -158,12 +163,49 @@ export default function AdminDashboard() {
           </div>
           {unassignedLeads.length > 0 && (
             <div className="border-t border-white/8 px-5 py-3">
-              <a href="/admin/leads" className="text-xs font-600 text-[#EE7436] hover:underline">
+              <Link to="/admin/leads" className="text-xs font-600 text-[#EE7436] hover:underline">
                 Tümünü gör →
-              </a>
+              </Link>
             </div>
           )}
         </Card>
+
+        {/* Takip Gereken Leadler */}
+        {followUpLeads.length > 0 && (
+          <Card padding={false} className="xl:col-span-2">
+            <div className="flex items-center justify-between border-b border-white/8 px-5 py-4">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={16} className="text-[#EE7436]" />
+                <h2 className="text-sm font-700 text-[#F0F4FF]">Takip Gereken Leadler</h2>
+              </div>
+              <Badge variant="orange">{followUpLeads.length}</Badge>
+            </div>
+            <div className="flex flex-col divide-y divide-white/5">
+              {followUpLeads.slice(0, 5).map(lead => (
+                <div key={lead.id} className="flex items-center gap-3 px-5 py-3">
+                  <div className={`h-2 w-2 flex-shrink-0 rounded-full ${
+                    lead.priority === 'URGENT' ? 'bg-red-400' :
+                    lead.priority === 'HIGH'   ? 'bg-amber-400' : 'bg-emerald-400'
+                  }`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-600 text-[#F0F4FF] truncate">
+                      {lead.firstName} {lead.lastName ?? ''}
+                    </p>
+                    <p className="text-xs text-[#8A9BC4]">
+                      Takip: {lead.nextFollowUpAt ? formatDate(lead.nextFollowUpAt) : 'Belirsiz'}
+                    </p>
+                  </div>
+                  <LeadStatusBadge status={lead.status} />
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-white/8 px-5 py-3">
+              <Link to="/admin/leads" className="text-xs font-600 text-[#EE7436] hover:underline">
+                Tümünü gör →
+              </Link>
+            </div>
+          </Card>
+        )}
 
         {/* Son Randevular */}
         <Card padding={false} className="xl:col-span-2">
@@ -172,13 +214,13 @@ export default function AdminDashboard() {
               <Calendar size={16} className="text-blue-400" />
               <h2 className="text-sm font-700 text-[#F0F4FF]">Son Randevular</h2>
             </div>
-            <a href="/admin/appointments" className="text-xs font-600 text-[#EE7436] hover:underline">Tümü</a>
+            <Link to="/admin/appointments" className="text-xs font-600 text-[#EE7436] hover:underline">Tümü</Link>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/5">
-                  {['Hasta ID', 'Doktor ID', 'Tarih', 'Tür', 'Ödeme', 'Durum'].map(h => (
+                  {['Hasta', 'Doktor', 'Tarih', 'Tür', 'Ödeme', 'Durum'].map(h => (
                     <th key={h} className="px-5 py-3 text-left text-[10px] font-700 uppercase tracking-wider text-[#8A9BC4]">{h}</th>
                   ))}
                 </tr>
@@ -188,8 +230,8 @@ export default function AdminDashboard() {
                   ? <tr><td colSpan={6}><Empty message="Randevu bulunamadı" /></td></tr>
                   : recentAppointments.map(apt => (
                     <tr key={apt.id} className="border-b border-white/4 hover:bg-white/2 transition-colors">
-                      <td className="px-5 py-3 font-mono text-xs text-[#8A9BC4]">{apt.patientId?.slice(-8) ?? '—'}</td>
-                      <td className="px-5 py-3 font-mono text-xs text-[#8A9BC4]">{apt.doctorId?.slice(-8) ?? '—'}</td>
+                      <td className="px-5 py-3 text-xs text-[#B8C6E0]">{apt.patientId?.slice(-8) ?? '—'}</td>
+                      <td className="px-5 py-3 text-xs text-[#B8C6E0]">{apt.doctorName ?? apt.doctorId?.slice(-8) ?? '—'}</td>
                       <td className="px-5 py-3 text-[#B8C6E0]">{formatDate(apt.appointmentDate)} {apt.startTime}</td>
                       <td className="px-5 py-3"><ConsultTypeBadge type={apt.consultationType} /></td>
                       <td className="px-5 py-3"><PaymentBadge status={apt.paymentStatus} /></td>

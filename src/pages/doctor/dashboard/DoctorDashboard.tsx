@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { StatCard, Card, Badge, PageLoader, Empty, Button } from '@/components/ui';
-import { Calendar, Clock, Video, CheckCircle2, ExternalLink } from 'lucide-react';
+import { Calendar, Clock, Video, CheckCircle2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import {
   getAppointmentsByDoctor, getMeetingLink,
 } from '@/api/endpoints/appointments';
@@ -126,9 +127,9 @@ export default function DoctorDashboard() {
           </div>
           {todayAppointments.length > 0 && (
             <div className="border-t border-white/8 px-5 py-3">
-              <a href="/doctor/appointments" className="text-xs font-600 text-[#EE7436] hover:underline">
+              <Link to="/doctor/appointments" className="text-xs font-600 text-[#EE7436] hover:underline">
                 Tüm randevular →
-              </a>
+              </Link>
             </div>
           )}
         </Card>
@@ -142,7 +143,7 @@ export default function DoctorDashboard() {
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="info">{todaySlots.length} toplam</Badge>
-              <a href="/doctor/slots" className="text-xs font-600 text-[#EE7436] hover:underline">Yönet</a>
+              <Link to="/doctor/slots" className="text-xs font-600 text-[#EE7436] hover:underline">Yönet</Link>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 p-4">
