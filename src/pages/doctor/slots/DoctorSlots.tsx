@@ -126,7 +126,7 @@ export default function DoctorSlots() {
           <Button variant="secondary" size="sm" onClick={load} loading={loading}>
             <RefreshCw size={13} />
           </Button>
-          <Button variant="primary" size="sm" onClick={() => setGenModal(true)}>
+          <Button variant="primary" size="sm" onClick={() => { setGenDate(toISO(weekStart)); setGenModal(true); }}>
             <Plus size={14} /> Slot Oluştur
           </Button>
         </div>
@@ -306,7 +306,7 @@ export default function DoctorSlots() {
               type="date"
               value={genDate}
               onChange={e => setGenDate(e.target.value)}
-              min={toISO(new Date())}
+              min={toISO(weekStart)}
               className="h-10 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-[#F0F4FF] outline-none focus:border-[#EE7436]/50"
             />
           </div>
