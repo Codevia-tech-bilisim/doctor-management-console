@@ -18,7 +18,7 @@ const ROLE_CONFIG = {
   DOCTOR: {
     icon: Stethoscope,
     label: 'Doktor',
-    desc: 'Slotlar, randevular, Zoom görüşmeleri',
+    desc: 'Slotlar, randevular, online görüşmeler',
     accent: '#3b82f6',
     hint: 'Doktor hesabınızla giriş yapın',
   },
