@@ -153,7 +153,7 @@ export default function AdminAppointments() {
                             ['CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS'].includes(apt.status) && (
                             <Button variant="info" size="sm" loading={zoomLoading === apt.id}
                               onClick={() => openZoom(apt)}>
-                              <Video size={11} /> Zoom
+                              <Video size={11} /> Online Görüşme
                             </Button>
                           )}
                           {['CONFIRMED', 'CHECKED_IN'].includes(apt.status) && (
@@ -189,7 +189,7 @@ export default function AdminAppointments() {
             <div className="flex gap-2 flex-wrap">
               <Badge variant={STATUS_VARIANT[detailModal.status] ?? 'muted'}>{STATUS_LABEL[detailModal.status]}</Badge>
               <Badge variant={detailModal.consultationType === 'VIDEO_CALL' ? 'info' : 'success'}>{detailModal.consultationType === 'VIDEO_CALL' ? 'Online' : detailModal.consultationType === 'IN_PERSON' ? 'In Person' : detailModal.consultationType}</Badge>
-              {detailModal.meetingInfo && <Badge variant="info">Zoom Bağlı</Badge>}
+              {detailModal.meetingInfo && <Badge variant="info">Online Görüşme</Badge>}
             </div>
 
             <div className="grid grid-cols-2 gap-3 rounded-xl bg-white/4 p-4">

@@ -216,7 +216,7 @@ export default function DoctorAppointments() {
                 {detailModal.consultationType === 'VIDEO_CALL' ? 'Online' : detailModal.consultationType === 'IN_PERSON' ? 'In Person' : detailModal.consultationType}
               </Badge>
               {detailModal.meetingInfo && (
-                <Badge variant="info">Zoom Bağlı</Badge>
+                <Badge variant="info">Online Görüşme</Badge>
               )}
             </div>
 
@@ -415,7 +415,7 @@ function AppointmentActions({
       {/* Video: CONFIRMED/CHECKED_IN/IN_PROGRESS */}
       {isVideo && ['CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS'].includes(apt.status) && (
         <Button variant="primary" size="sm" loading={zoomLoading} onClick={onZoom}>
-          <Video size={11} /> Zoom
+          <Video size={11} /> Online Görüşme
         </Button>
       )}
       {/* İptal */}
