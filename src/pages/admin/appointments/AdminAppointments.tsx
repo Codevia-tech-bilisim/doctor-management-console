@@ -1,7 +1,8 @@
 // src/pages/admin/appointments/AdminAppointments.tsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, Badge, Button, PageLoader, Empty, Table, Th, Td, Modal } from '@/components/ui';
-import { Calendar, RefreshCw, ChevronLeft, ChevronRight, Video, FileText, ExternalLink } from 'lucide-react';
+import { Calendar, RefreshCw, ChevronLeft, ChevronRight, Video, FileText } from 'lucide-react';
+import VideoCall from '@/components/VideoCall';
 import {
   getAllAppointments, cancelAppointment, getMeetingLink,
 } from '@/api/endpoints/appointments';
@@ -45,7 +46,7 @@ export default function AdminAppointments() {
   const [filter,       setFilter]       = useState('ALL');
   const [actionId,     setActionId]     = useState<string | null>(null);
   const [detailModal,  setDetailModal]  = useState<Appointment | null>(null);
-  const [zoomModal,    setZoomModal]    = useState<{ url: string; apt: Appointment } | null>(null);
+  const [videoCall,    setVideoCall]    = useState<Appointment | null>(null);
   const [zoomLoading,  setZoomLoading]  = useState<string | null>(null);
 
   const load = useCallback(async (p = 0) => {
@@ -74,18 +75,8 @@ export default function AdminAppointments() {
     setActionId(null);
   };
 
-  const openZoom = async (apt: Appointment) => {
-    setZoomLoading(apt.id);
-    try {
-      const url = apt.meetingInfo?.startUrl ?? apt.meetingInfo?.meetingUrl ?? apt.meetingInfo?.joinUrl;
-      if (url) { setZoomModal({ url, apt }); }
-      else {
-        const res = await getMeetingLink(apt.id);
-        const link = res.data?.startUrl ?? res.data?.joinUrl;
-        if (link) setZoomModal({ url: link, apt });
-      }
-    } catch { /* ignore */ }
-    setZoomLoading(null);
+  const openZoom = (apt: Appointment) => {
+    setVideoCall(apt);
   };
 
   return (
@@ -244,32 +235,22 @@ export default function AdminAppointments() {
 
             {detailModal.consultationType === 'VIDEO_CALL' &&
               ['CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS'].includes(detailModal.status) && (
-              <Button variant="primary" size="sm" loading={zoomLoading === detailModal.id} onClick={() => openZoom(detailModal)}>
-                <Video size={14} /> Zoom Linkini Aç
+              <Button variant="primary" size="sm" onClick={() => { setDetailModal(null); openZoom(detailModal); }}>
+                <Video size={14} /> Görüşmeye Katıl
               </Button>
             )}
           </div>
         )}
       </Modal>
 
-      {/* Zoom Modal */}
-      <Modal open={!!zoomModal} onClose={() => setZoomModal(null)} title="Zoom Görüşmesi" width="max-w-sm">
-        {zoomModal && (
-          <div className="flex flex-col gap-4">
-            <div className="rounded-xl bg-blue-500/8 border border-blue-500/20 p-4">
-              <p className="text-sm text-blue-400 font-600">Toplantı linki hazır</p>
-              <p className="text-xs text-[#8A9BC4] mt-1">{formatDate(zoomModal.apt.appointmentDate)} · {zoomModal.apt.startTime}</p>
-              {zoomModal.apt.meetingInfo?.meetingId && (
-                <p className="text-xs text-[#8A9BC4] mt-0.5 font-mono">Meeting ID: {zoomModal.apt.meetingInfo.meetingId}</p>
-              )}
-            </div>
-            <a href={zoomModal.url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 h-11 rounded-xl bg-[#EE7436] text-white text-sm font-700 hover:bg-[#D45E20] transition-colors">
-              <Video size={16} /> Zoom'a Katıl <ExternalLink size={13} />
-            </a>
-          </div>
-        )}
-      </Modal>
+      {/* Sayfa içi Video Görüşme */}
+      {videoCall && (
+        <VideoCall
+          roomName={videoCall.id}
+          displayName="Admin"
+          onClose={() => setVideoCall(null)}
+        />
+      )}
     </div>
   );
 }
