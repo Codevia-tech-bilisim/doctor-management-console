@@ -1,5 +1,4 @@
-// src/pages/auth/Login.tsx
-import React, { useState } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Eye, EyeOff, Lock, Mail, ShieldCheck, Stethoscope } from 'lucide-react';
@@ -7,22 +6,28 @@ import { cn } from '@/lib/utils';
 
 type RoleTab = 'ADMIN' | 'DOCTOR';
 
-const ROLE_CONFIG = {
+const ROLE_CONFIG: Record<RoleTab, {
+  icon: typeof ShieldCheck;
+  label: string;
+  desc: string;
+  accent: string;
+  hint: string;
+}> = {
   ADMIN: {
     icon: ShieldCheck,
-    label: 'Admin',
+    label: 'Yönetici',
     desc: 'Doktor onay, lead yönetimi, raporlar',
     accent: '#EE7436',
-    hint: 'Admin hesabınızla giriş yapın',
+    hint: 'Yönetici hesabınızla giriş yapın',
   },
   DOCTOR: {
     icon: Stethoscope,
     label: 'Doktor',
-    desc: 'Slotlar, randevular, online görüşmeler',
+    desc: 'Slotlar, randevular, Zoom görüşmeleri',
     accent: '#3b82f6',
     hint: 'Doktor hesabınızla giriş yapın',
   },
-} as const;
+};
 
 export default function Login() {
   const { login, user } = useAuth();
@@ -35,11 +40,11 @@ export default function Login() {
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState<string | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (user) navigate(user.role === 'DOCTOR' ? '/doctor' : '/admin', { replace: true });
   }, [user, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!email || !password) { setError('E-posta ve şifre zorunludur.'); return; }
     setError(null);
@@ -47,7 +52,6 @@ export default function Login() {
     const result = await login(email, password);
     setLoading(false);
     if (!result.success) {
-      // Role uyumsuzluğu için daha anlamlı mesaj
       const msg = result.error ?? 'Giriş başarısız.';
       if (msg.includes('sadece Admin ve Doktor')) {
         setError('Bu hesap hasta hesabıdır. Lütfen yetkili personel hesabı kullanın.');
@@ -60,12 +64,12 @@ export default function Login() {
   };
 
   const cfg = ROLE_CONFIG[role];
-  const isAdmin = role === 'ADMIN';
+  const isAdmin = role === 'ADMIN'; // UI displays this role as "Yönetici" — internal key stays 'ADMIN' for backend compatibility
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#0A1525]">
 
-      {/* ── Sol panel ── */}
+      {/* ── Left panel ── */}
       <div className="relative hidden w-[52%] flex-col overflow-hidden lg:flex">
         <div className="absolute inset-0 bg-gradient-to-br from-[#0F1B33] via-[#142244] to-[#17264A]" />
         <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-[#EE7436]/8 blur-3xl" />
@@ -85,7 +89,7 @@ export default function Login() {
             </span>
           </div>
 
-          {/* Orta */}
+          {/* Center content */}
           <div className="flex flex-col gap-8">
             <div>
               <h1 className="text-4xl font-black leading-tight tracking-tight text-white">
@@ -97,7 +101,7 @@ export default function Login() {
               </p>
             </div>
 
-            {/* Role cards — tıklanabilir */}
+            {/* Role cards */}
             <div className="flex flex-col gap-3">
               {(Object.entries(ROLE_CONFIG) as [RoleTab, typeof ROLE_CONFIG[RoleTab]][]).map(([key, c]) => {
                 const Icon = c.icon;
@@ -138,10 +142,10 @@ export default function Login() {
         </div>
       </div>
 
-      {/* ── Sağ panel: Form ── */}
+      {/* ── Right panel: Form ── */}
       <div className="flex flex-1 flex-col items-center justify-center bg-[#0D1829] px-8">
 
-        {/* Mobil logo */}
+        {/* Mobile logo */}
         <div className="mb-8 flex items-center gap-2 lg:hidden">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#EE7436] to-[#C8521A]">
             <span className="text-xs font-black text-white">HV</span>
@@ -151,7 +155,7 @@ export default function Login() {
 
         <div className="w-full max-w-[380px]">
 
-          {/* Role toggle — mobilde de göster */}
+          {/* Role toggle */}
           <div className="mb-6 flex rounded-xl border border-white/10 bg-white/5 p-1">
             {(Object.entries(ROLE_CONFIG) as [RoleTab, typeof ROLE_CONFIG[RoleTab]][]).map(([key, c]) => {
               const Icon = c.icon;
@@ -191,7 +195,7 @@ export default function Login() {
                   autoComplete="email"
                   value={email}
                   onChange={e => { setEmail(e.target.value); setError(null); }}
-                  placeholder={isAdmin ? 'admin@healthvia.com' : 'doktor@healthvia.com'}
+                  placeholder={isAdmin ? 'yonetici@healthvia.com' : 'doktor@healthvia.com'}
                   className={cn(
                     'h-11 w-full rounded-xl border bg-white/5 pl-10 pr-4 text-sm text-[#F0F4FF] outline-none transition-all',
                     'placeholder:text-[#8A9BC4]/50',
@@ -202,7 +206,7 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Şifre */}
+            {/* Password */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-700 uppercase tracking-wider text-[#8A9BC4]">Şifre</label>
               <div className="relative">
@@ -230,7 +234,7 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Hata */}
+            {/* Error message */}
             {error && (
               <div className="flex items-start gap-2.5 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
                 <span className="mt-0.5 flex-shrink-0">⚠</span>

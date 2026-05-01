@@ -149,7 +149,7 @@ export default function PanelLayout({ role }: { role: Role }) {
           </div>
           <span className="text-base font-black tracking-tight text-white">HEALTHVIA</span>
           <span className="ml-auto rounded border border-[#EE7436]/25 bg-[#EE7436]/10 px-1.5 py-0.5 text-[9px] font-700 uppercase tracking-wider text-[#EE7436]">
-            {role === 'ADMIN' ? 'Admin' : 'Doktor'}
+            {role === 'ADMIN' ? 'Yönetici' : 'Doktor'} {/* UI label — internal role key stays 'ADMIN' for backend compatibility */}
           </span>
         </div>
 
