@@ -53,7 +53,7 @@ export default function Login() {
     setLoading(false);
     if (!result.success) {
       const msg = result.error ?? 'Giriş başarısız.';
-      if (msg.includes('sadece Admin ve Doktor')) {
+      if (msg.includes('sadece Yönetici ve Doktor')) {
         setError('Bu hesap hasta hesabıdır. Lütfen yetkili personel hesabı kullanın.');
       } else if (msg.includes('Geçersiz') || msg.includes('Invalid')) {
         setError('E-posta veya şifre hatalı. Lütfen kontrol edin.');

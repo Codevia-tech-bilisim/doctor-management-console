@@ -13,7 +13,7 @@ export async function login(req: LoginRequest): Promise<AuthResponse> {
   // Sadece ADMIN veya DOCTOR giriş yapabilir bu panelde
   const role = res.data.role;
   if (role !== 'ADMIN' && role !== 'DOCTOR') {
-    throw new Error('Bu panel sadece Admin ve Doktor hesapları içindir.');
+    throw new Error('Bu panel sadece Yönetici ve Doktor hesapları içindir.');
   }
 
   TokenStorage.setAccess(res.data.accessToken);

@@ -170,7 +170,7 @@ export default function PanelLayout({ role }: { role: Role }) {
               </div>
               <div className="flex-1 text-left min-w-0">
                 <p className="text-xs font-600 text-[#F0F4FF] truncate">{user?.firstName} {user?.lastName}</p>
-                <p className="text-[10px] text-[#8A9BC4]">{user?.role}</p>
+                <p className="text-[10px] text-[#8A9BC4]">{user?.role === 'ADMIN' ? 'Yönetici' : 'Doktor'}</p>
               </div>
               <ChevronDown size={13} className={cn('text-[#8A9BC4] transition-transform flex-shrink-0', sidebarProfileOpen && 'rotate-180')} />
             </button>
