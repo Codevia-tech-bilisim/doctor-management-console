@@ -97,7 +97,7 @@ export default function Login() {
                 <span className="text-[#EE7436]">Yönetim Paneli</span>
               </h1>
               <p className="mt-4 max-w-sm text-base leading-relaxed text-[#8A9BC4]">
-                Hasta yönetimi, randevu takibi, doktor onayları ve CRM işlemlerini tek panelden yönetin.
+                 Hasta yönetimi, randevu takibi, doktor onayları ve lead takibini tek panelden yönetin.
               </p>
             </div>
 
