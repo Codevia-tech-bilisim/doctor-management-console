@@ -11,10 +11,12 @@ import { api } from '@/api/client';
 import type { Doctor, ApiResponse } from '@/api/types';
 import { formatDate, initials } from '@/lib/utils';
 
-const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+// Backend (slot üretimi) ve hasta sitesi gün adlarını DayOfWeek.name() ile
+// karşılaştırıyor — tam İngilizce adlar şart, kısaltma kullanılamaz.
+const DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
 const DAY_LABELS: Record<string, string> = {
-  MON: 'Pzt', TUE: 'Sal', WED: 'Çar',
-  THU: 'Per', FRI: 'Cum', SAT: 'Cmt', SUN: 'Paz',
+  MONDAY: 'Pzt', TUESDAY: 'Sal', WEDNESDAY: 'Çar',
+  THURSDAY: 'Per', FRIDAY: 'Cum', SATURDAY: 'Cmt', SUNDAY: 'Paz',
 };
 
 export default function DoctorProfile() {
