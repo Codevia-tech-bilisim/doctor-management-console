@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Card, Badge, Button, Modal, PageLoader, Empty } from '@/components/ui';
-import { Clock, Plus, RefreshCw, ChevronLeft, ChevronRight, Lock, Unlock, Trash2 } from 'lucide-react';
+import { Clock, Plus, RefreshCw, ChevronLeft, ChevronRight, Lock, Unlock, Trash2, AlertCircle, X } from 'lucide-react';
 import {
   getSlotsInRange, generateDailySlots, generateWeeklySlots,
   blockSlot, unblockSlot, deleteSlot,
@@ -21,6 +21,17 @@ function toISO(d: Date) {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function mondayOf(iso: string): Date {
+  const d = new Date(iso + 'T00:00:00');
+  d.setDate(d.getDate() - (d.getDay() === 0 ? 6 : d.getDay() - 1));
+  return d;
+}
+
+function apiErrorMessage(e: unknown, fallback: string): string {
+  const body = (e as { body?: { message?: string; error?: { message?: string } } })?.body;
+  return body?.error?.message ?? body?.message ?? fallback;
 }
 
 const SLOT_COLOR: Record<string, string> = {
@@ -49,6 +60,7 @@ export default function DoctorSlots() {
   const [genDuration,  setGenDuration]  = useState(30);
   const [genWeekly,    setGenWeekly]    = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [error,         setError]         = useState('');
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -68,46 +80,64 @@ export default function DoctorSlots() {
 
   const handleGenerate = async () => {
     setGenLoading(true);
+    setError('');
     try {
       if (genWeekly) {
         await generateWeeklySlots(doctorId, genDate, genDuration);
       } else {
         await generateDailySlots(doctorId, genDate, genDuration);
       }
+      // Yeni slotlar görünür olsun diye ızgarayı oluşturulan haftaya taşı.
+      setWeekStart(mondayOf(genDate));
       await load();
-    } catch { /* ignore */ }
-    setGenLoading(false);
-    setGenModal(false);
+      setGenModal(false);
+    } catch (e) {
+      setError(apiErrorMessage(e, 'Slotlar oluşturulamadı. Lütfen tekrar deneyin.'));
+    } finally {
+      setGenLoading(false);
+    }
   };
 
   const handleBlock = async () => {
     if (!selected || !blockReason.trim()) return;
     setActionLoading(true);
+    setError('');
     try {
       await blockSlot(selected.id, blockReason, doctorId);
       await load();
-    } catch { /* ignore */ }
-    setActionLoading(false);
-    setSelected(null);
-    setBlockReason('');
+      setSelected(null);
+      setBlockReason('');
+    } catch (e) {
+      setError(apiErrorMessage(e, 'Slot bloklanamadı.'));
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleUnblock = async (slot: TimeSlot) => {
     setActionLoading(true);
+    setError('');
     try {
       await unblockSlot(slot.id);
       await load();
-    } catch { /* ignore */ }
-    setActionLoading(false);
+    } catch (e) {
+      setError(apiErrorMessage(e, 'Blok kaldırılamadı.'));
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleDelete = async (slot: TimeSlot) => {
     setActionLoading(true);
+    setError('');
     try {
       await deleteSlot(slot.id, doctorId);
       await load();
-    } catch { /* ignore */ }
-    setActionLoading(false);
+    } catch (e) {
+      setError(apiErrorMessage(e, 'Slot silinemedi.'));
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   return (
@@ -131,6 +161,17 @@ export default function DoctorSlots() {
           </Button>
         </div>
       </div>
+
+      {/* Hata bildirimi */}
+      {error && (
+        <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-300">
+          <AlertCircle size={15} className="flex-shrink-0" />
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError('')} className="text-red-300/70 hover:text-red-200" aria-label="Kapat">
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Hafta navigasyonu */}
       <div className="flex items-center gap-3">
